@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manuel Freze Delik Hesaplayıcı</title>
+
+<style>
+:root{
+  --bg:#0f0f10;
+  --panel:#1b1b1d;
+  --text:#e6e6e6;
+  --sub:#9a9a9a;
+  --accent:#4aa3ff;
+}
+
+*{box-sizing:border-box;font-family:Inter,Arial}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+}
+
+header{
+  padding:16px;
+  background:#000;
+  text-align:center;
+  font-weight:600;
+  letter-spacing:.5px;
+}
+
+main{
+  max-width:1000px;
+  margin:auto;
+  padding:20px;
+}
+
+.menu{
+  display:flex;
+  gap:12px;
+  justify-content:center;
+  margin-bottom:20px;
+}
+
+.menu button{
+  background:var(--panel);
+  color:var(--text);
+  border:1px solid #333;
+  padding:12px 18px;
+  border-radius:12px;
+  cursor:pointer;
+  transition:.3s;
+}
+
+.menu button:hover{
+  background:var(--accent);
+  color:#000;
+}
+
+.section{
+  display:none;
+  animation:fade .4s ease;
+}
+
+.section.active{
+  display:block;
+}
+
+@keyframes fade{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:none}
+}
+
+.panel{
+  background:var(--panel);
+  padding:20px;
+  border-radius:18px;
+  margin-bottom:20px;
+  box-shadow:0 10px 30px rgba(0,0,0,.5);
+}
+
+.inputs{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:16px;
+}
+
+label{
+  font-size:14px;
+  color:var(--sub);
+}
+
+input{
+  width:100%;
+  margin-top:6px;
+  padding:12px;
+  border-radius:10px;
+  border:1px solid #333;
+  background:#0c0c0d;
+  color:var(--text);
+}
+
+.buttons{
+  display:flex;
+  gap:12px;
+  margin-top:20px;
+}
+
+.buttons button{
+  flex:1;
+  padding:14px;
+  border-radius:12px;
+  border:none;
+  cursor:pointer;
+  font-weight:600;
+  transition:.3s;
+}
+
+.calc{
+  background:var(--accent);
+  color:#000;
+}
+
+.clear{
+  background:#333;
+  color:var(--text);
+}
+
+.buttons button:hover{
+  transform:translateY(-2px);
+}
+
+.canvas-wrap{
+  margin-top:30px;
+  text-align:center;
+}
+
+canvas{
+  background:#fff;
+  border-radius:16px;
+  max-width:100%;
+}
+
+.table-wrap{
+  overflow-x:auto;
+  margin-top:20px;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+th,td{
+  border-bottom:1px solid #333;
+  padding:10px;
+  text-align:center;
+}
+
+th{
+  color:var(--accent);
+}
+</style>
+</head>
+
+<body>
+
+<header>MANUEL FREZE – DAİRESEL DELİK HESAPLAMA</header>
+
+<main>
+
+<div class="menu">
+  <button onclick="showSection('center')">Merkezli Parça</button>
+  <button onclick="showSection('nocenter')">Merkezsiz Parça</button>
+</div>
+
+<!-- MERKEZSİZ BİLGİ -->
+<div id="nocenter" class="section panel">
+  <h3>Merkezsiz Bağlama</h3>
+  <p style="color:var(--sub)">
+    Parça merkezden bağlanmadıysa önce:
+    <br>• Komparatör ile merkez bulun
+    <br>• X ve Y sıfırlanır
+    <br>• Sonra hesaplama bölümüne geçilir
+  </p>
+</div>
+
+<!-- MERKEZLİ HESAPLAMA -->
+<div id="center" class="section active">
+
+  <div class="panel">
+    <div class="inputs">
+      <div>
+        <label>Parça Çapı (mm)</label>
+        <input id="cap" type="number">
+      </div>
+      <div>
+        <label>PCD (Delik Merkezleri Çapı) (mm)</label>
+        <input id="pcd" type="number">
+      </div>
+      <div>
+        <label>Delik Sayısı</label>
+        <input id="adet" type="number">
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button class="calc" onclick="hesapla()">HESAPLA</button>
+      <button class="clear" onclick="temizle()">TEMİZLE</button>
+    </div>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="canvas"></canvas>
+  </div>
+
+  <div id="tablo" class="table-wrap"></div>
+
+</div>
+
+</main>
+
+<script>
+function showSection(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+
+function hesapla(){
+  const cap=+document.getElementById("cap").value;
+  const pcd=+document.getElementById("pcd").value;
+  const adet=+document.getElementById("adet").value;
+
+  if(!cap||!pcd||!adet){
+    alert("Tüm alanları doldur");
+    return;
+  }
+
+  const size=Math.min(window.innerWidth-60,420);
+  canvas.width=size;
+  canvas.height=size;
+
+  ctx.clearRect(0,0,size,size);
+
+  const cx=size/2;
+  const cy=size/2;
+
+  const scale=(size*0.4)/(cap/2);
+  const partR=(cap/2)*scale;
+  const pcdR=(pcd/2)*scale;
+
+  // Parça
+  ctx.lineWidth=2;
+  ctx.strokeStyle="#000";
+  ctx.beginPath();
+  ctx.arc(cx,cy,partR,0,Math.PI*2);
+  ctx.stroke();
+
+  // PCD
+  ctx.setLineDash([6,6]);
+  ctx.strokeStyle="#666";
+  ctx.beginPath();
+  ctx.arc(cx,cy,pcdR,0,Math.PI*2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  let html=`<table><tr><th>Delik</th><th>X (mm)</th><th>Y (mm)</th></tr>`;
+
+  for(let i=0;i<adet;i++){
+    const a=i*2*Math.PI/adet;
+    const xMM=(pcd/2)*Math.cos(a);
+    const yMM=(pcd/2)*Math.sin(a);
+
+    const x=cx+xMM*scale;
+    const y=cy-yMM*scale;
+
+    ctx.beginPath();
+    ctx.arc(x,y,7,0,Math.PI*2);
+    ctx.strokeStyle="#000";
+    ctx.stroke();
+
+    ctx.fillStyle="#000";
+    ctx.font="12px Arial";
+    ctx.fillText(
+      `X${xMM.toFixed(1)} Y${yMM.toFixed(1)}`,
+      cx+(xMM*scale)*1.15,
+      cy-(yMM*scale)*1.15
+    );
+
+    html+=`<tr><td>${i+1}</td><td>${xMM.toFixed(2)}</td><td>${yMM.toFixed(2)}</td></tr>`;
+  }
+
+  html+=`</table>`;
+  document.getElementById("tablo").innerHTML=html;
+}
+
+function temizle(){
+  document.getElementById("cap").value="";
+  document.getElementById("pcd").value="";
+  document.getElementById("adet").value="";
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  document.getElementById("tablo").innerHTML="";
+}
+</script>
+
+</body>
+</html>
