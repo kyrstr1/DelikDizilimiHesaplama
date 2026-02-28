@@ -26,8 +26,6 @@ Delik Merkezleri Çapı mm cinsinden yazılır.
 
 Bu alana kaç adet delik açılacağı belirlenir.
 
-
-
 Hesaplanan değerler kullanıcıya gösterilir.
 
 Bu işlem, manuel hesaplama yerine otomatik olarak yapılır. Böylece hatalar azalır ve işler daha hızlı ilerler.
